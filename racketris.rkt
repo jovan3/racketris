@@ -8,14 +8,8 @@
 (define text "ok")
 
 (define yellow-brush (make-object brush% "YELLOW" 'solid))
-(define red-brush (make-object brush% "BLUE" 'solid))
-(define blue-brush (make-object brush% "RED" 'solid))
-
-(define tetris-board (hash
-                      '(1 1) "red"
-                      '(1 2) "red"
-                      '(2 3) "blue"
-                      '(4 7) "yellow"))
+(define red-brush (make-object brush% "RED" 'solid))
+(define blue-brush (make-object brush% "BLUE" 'solid))
 
 (define (get-brush name)
   (cond
@@ -23,6 +17,34 @@
     [(equal? name "blue") blue-brush]
     [(equal? name "yellow") yellow-brush]))
 
+(define tetris-board (make-hash)) ; mutable hash
+(hash-set! tetris-board '(5 10) "blue")
+(define shapes (list
+                (list '(5 0) '(5 1) '(5 2) '(5 3))
+                (list '(5 0) '(5 1) '(5 2) '(4 2))
+                (list '(5 0) '(5 1) '(6 0) '(6 1))
+                (list '(5 0) '(5 1) '(4 1) '(6 1))))
+ 
+
+(define (random-shape l)
+  (list-ref l (random (length l))))
+
+(define current-shape (map (lambda (point)
+                             (list point "red")) (random-shape shapes)))
+
+(define current-shape-2 (apply hash (apply append (map (lambda (point)
+                                       (list point "red")) (random-shape shapes)))))
+
+(define (place-on-board board shape)
+  (for ([s shape])
+    (hash-set! board (car s) (cadr s))))
+
+(define (move-shape-down shape)
+  (make-hash (hash-map shape (lambda (k v)
+                    (let ([x (car k)]
+                          [y (cadr k)])
+                      (cons (list x (+ 1 y)) v))))))
+      
 (define (draw-square-block canvas square-brush position)
   (let ([start (car position)]
         [end (cadr position)]
@@ -76,7 +98,12 @@
   
   ;(send ctx draw-text text x y)
   (draw-board tetris-board ctx)
-  
+  (println "-------")
+  (println current-shape-2)
+  (draw-board current-shape-2 ctx)
+
+  (set! current-shape-2 (move-shape-down current-shape-2))
+  (println current-shape-2)
   (sleep/yield 1)
   (loop (+ x 1) (+ y 1)))
 

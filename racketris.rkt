@@ -6,6 +6,8 @@
                    [height 300]))
 
 (define text "ok")
+(define board-width 10)
+(define board-height 20)
 
 (define yellow-brush (make-object brush% "YELLOW" 'solid))
 (define red-brush (make-object brush% "RED" 'solid))
@@ -39,12 +41,51 @@
   (for ([s shape])
     (hash-set! board (car s) (cadr s))))
 
-(define (move-shape-down shape)
+(define (move-shape shape dx dy)
   (make-hash (hash-map shape (lambda (k v)
                     (let ([x (car k)]
                           [y (cadr k)])
-                      (cons (list x (+ 1 y)) v))))))
-      
+                      (cons (list (+ x dx) (+ y dy)) v))))))
+
+(define (move-shape-down shape)
+  (move-shape shape 0 1))
+
+(define (move-shape-left shape)
+  (move-shape shape -1 0))
+
+(define (move-shape-right shape)
+  (move-shape shape 1 0))
+
+(define (outside-board? x y)
+  (cond
+    [(< x 0) #t]
+    [(> x board-width) #t]
+    [(> y board-height) #t]
+    [else #f]))
+
+
+(define (contains? el l)
+  (cond
+    [(empty? l) #f]
+    [(equal? (car l) el) #t]
+    [else (contains? el (rest l))]))
+
+(define (shape-collides? coords board)
+  (hash-has-key? board coords))
+
+(define (shape-piece-collides? piece board)
+  (let ([x (car piece)]
+        [y (cadr piece)])
+    (if (outside-board? x y)
+        #f
+        (not (shape-collides? piece board)))))
+
+(define (can-move? shape board dx dy)
+  (let ([test-shape (move-shape shape dx dy)])
+    (not (contains? #f
+                    (hash-map test-shape (lambda (k v)
+                                           (shape-piece-collides? k board)))))))
+
 (define (draw-square-block canvas square-brush position)
   (let ([start (car position)]
         [end (cadr position)]
@@ -104,6 +145,7 @@
 
   (set! current-shape-2 (move-shape-down current-shape-2))
   (println current-shape-2)
+  (println (can-move? current-shape-2 tetris-board 0 1))
   (sleep/yield 1)
   (loop (+ x 1) (+ y 1)))
 

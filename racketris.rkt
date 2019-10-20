@@ -37,8 +37,6 @@
 (define current-shape (new-shape))
 
 (define (place-on-board board shape)
-  (println "placing")
-  (println shape)
   (hash-for-each shape (lambda (k v)
                          (hash-set! board k v))))
 
@@ -48,35 +46,49 @@
                           [y (cadr k)])
                       (cons (list (+ x dx) (+ y dy)) v))))))
 
-(define (outside-board? x y)
-  (cond
-    [(< x 0) #t]
-    [(> x board-width) #t]
-    [(> y board-height) #t]
-    [else #f]))
-
-
 (define (contains? el l)
   (cond
     [(empty? l) #f]
     [(equal? (car l) el) #t]
     [else (contains? el (rest l))]))
 
-(define (shape-collides? coords board)
-  (hash-has-key? board coords))
-
 (define (shape-piece-collides? piece board)
+  (hash-has-key? board piece))
+
+(define (shape-piece-outside? piece)
   (let ([x (car piece)]
         [y (cadr piece)])
-    (if (outside-board? x y)
-        #f
-        (not (shape-collides? piece board)))))
+    (cond
+      [(< x 0) #t]
+      [(> x board-width) #t]
+      [(> y board-height) #t]
+      [else #f])))
 
-(define (can-move? shape board dx dy)
+(define (shape-piece-hits-bottom? piece)
+  (let ([y (cadr piece)])
+    (> y board-height)))
+
+(define (can-move-test board)
+  (lambda (k v)
+    (or
+     (shape-piece-outside? k)
+     (shape-piece-collides? k board))))
+
+(define (freeze-test board)
+  (lambda (k v)
+    (or
+     (shape-piece-collides? k board)
+     (shape-piece-hits-bottom? k))))
+
+(define (can-move? shape board dx dy test-fn)
   (let ([test-shape (move-shape shape dx dy)])
-    (not (contains? #f
-                    (hash-map test-shape (lambda (k v)
-                                           (shape-piece-collides? k board)))))))
+    (not (contains? #t (hash-map test-shape test-fn)))))
+
+(define (should-freeze? shape board dx dy)
+  (let ([test-shape (move-shape shape dx dy)])
+    (if (equal? dy 1)
+        (not (can-move? test-shape board dx dy (freeze-test board)))
+        #f)))
 
 (define (draw-square-block canvas square-brush position)
   (let ([start (car position)]
@@ -133,12 +145,12 @@
   (let ([deltas (direction->delta direction)])
     (let ([dx (car deltas)]
           [dy (cadr deltas)])
-      (println (can-move? shape board dx dy))
-      (if (can-move? shape board dx dy)
+      (if (can-move? shape board dx dy (can-move-test board))
           (set! current-shape (move-shape current-shape dx dy))
-          (begin
-            (place-on-board board shape)
-            (set! current-shape (new-shape))))))
+          (when (should-freeze? shape board dx dy)
+            (begin
+              (place-on-board board shape)
+              (set! current-shape (new-shape)))))))
   (draw))
       
 (define (draw)
@@ -148,11 +160,7 @@
 
 (define (loop x y)
   (draw)
-  
-  ;(println "-------")
-  ;(println current-shape)
   (move "down" current-shape tetris-board)
-  
   (sleep/yield 1)
   (loop (+ x 1) (+ y 1)))
 

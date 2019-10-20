@@ -20,7 +20,7 @@
     [(equal? name "yellow") yellow-brush]))
 
 (define tetris-board (make-hash)) ; mutable hash
-(hash-set! tetris-board '(5 10) "blue")
+
 (define shapes (list
                 (list '(5 0) '(5 1) '(5 2) '(5 3))
                 (list '(5 0) '(5 1) '(5 2) '(4 2))
@@ -31,30 +31,22 @@
 (define (random-shape l)
   (list-ref l (random (length l))))
 
-(define current-shape (map (lambda (point)
-                             (list point "red")) (random-shape shapes)))
-
-(define current-shape-2 (apply hash (apply append (map (lambda (point)
+(define (new-shape) (apply hash (apply append (map (lambda (point)
                                        (list point "red")) (random-shape shapes)))))
 
+(define current-shape (new-shape))
+
 (define (place-on-board board shape)
-  (for ([s shape])
-    (hash-set! board (car s) (cadr s))))
+  (println "placing")
+  (println shape)
+  (hash-for-each shape (lambda (k v)
+                         (hash-set! board k v))))
 
 (define (move-shape shape dx dy)
   (make-hash (hash-map shape (lambda (k v)
                     (let ([x (car k)]
                           [y (cadr k)])
                       (cons (list (+ x dx) (+ y dy)) v))))))
-
-(define (move-shape-down shape)
-  (move-shape shape 0 1))
-
-(define (move-shape-left shape)
-  (move-shape shape -1 0))
-
-(define (move-shape-right shape)
-  (move-shape shape 1 0))
 
 (define (outside-board? x y)
   (cond
@@ -113,9 +105,12 @@
 (define keyboard-canvas%
   (class canvas%
     (define/override (on-char key-event)
-      (cond
-        [(equal? (send key-event get-key-code) 'up) (set! text "up")]
-        [(equal? (send key-event get-key-code) 'down) (set! text "down")]))
+      (let ([code (send key-event get-key-code)])
+      (let ([new-direction (cond
+                             [(equal? code 'down) "down"]
+                             [(equal? code 'left) "left"]
+                             [(equal? code 'right) "right"])])
+        (move new-direction current-shape tetris-board))))
     (super-new)))
 
 (define can (new keyboard-canvas% [parent frame]
@@ -128,24 +123,36 @@
 (send frame show #t)
 (define ctx (send can get-dc))
 
-(define (loop x y)
-  (send ctx clear)
-  ;(draw-square-block ctx yellow-brush (list (list 10 10) (list 20 20)))
-  ;(draw-square-block ctx red-brush (list (list 40 40) (list 70 70)))
-  ;(draw-square-block ctx blue-brush (list (list 80 80) (list 90 90)))
-  ;(draw-square-block ctx blue-brush (list (list 40 50) (list 10 10)))
-  ;(draw-square-block ctx blue-brush (list (list 50 60) (list 10 10)))
-  
-  
-  ;(send ctx draw-text text x y)
-  (draw-board tetris-board ctx)
-  (println "-------")
-  (println current-shape-2)
-  (draw-board current-shape-2 ctx)
+(define (direction->delta direction)
+  (cond
+    [(equal? "left" direction) '(-1 0)]
+    [(equal? "right" direction) '(1 0)]
+    [else '(0 1)]))
 
-  (set! current-shape-2 (move-shape-down current-shape-2))
-  (println current-shape-2)
-  (println (can-move? current-shape-2 tetris-board 0 1))
+(define (move direction shape board)
+  (let ([deltas (direction->delta direction)])
+    (let ([dx (car deltas)]
+          [dy (cadr deltas)])
+      (println (can-move? shape board dx dy))
+      (if (can-move? shape board dx dy)
+          (set! current-shape (move-shape current-shape dx dy))
+          (begin
+            (place-on-board board shape)
+            (set! current-shape (new-shape))))))
+  (draw))
+      
+(define (draw)
+  (send ctx clear)
+  (draw-board tetris-board ctx)
+  (draw-board current-shape ctx))
+
+(define (loop x y)
+  (draw)
+  
+  ;(println "-------")
+  ;(println current-shape)
+  (move "down" current-shape tetris-board)
+  
   (sleep/yield 1)
   (loop (+ x 1) (+ y 1)))
 

@@ -46,6 +46,31 @@
                           [y (cadr k)])
                       (cons (list (+ x dx) (+ y dy)) v))))))
 
+(define (shape-center shape)
+  (let ([x-coords (map car (map car (hash->list shape)))]
+        [y-coords (map cadr (map car (hash->list shape)))])
+    (let ([mean-fn (lambda (l) (ceiling (/ (apply + l) 4)))])
+      (list (mean-fn x-coords) (mean-fn y-coords)))))
+
+(define (rotate-shape-piece-fn pivot-x pivot-y)
+  (lambda (k v)
+    (let ([x (car k)]
+          [y (cadr k)])
+      (cons (list (+ pivot-x pivot-y (- y))
+                  (+ pivot-y (- pivot-x) x)) v))))
+
+(define (rotate-shape shape)
+  (let ([pivot (shape-center shape)])
+    (let ([pivot-x (car pivot)]
+          [pivot-y (cadr pivot)])
+      (make-hash (hash-map shape (rotate-shape-piece-fn pivot-x pivot-y))))))
+
+(define (rotate-shape!)
+  (let ([rotated-shape (rotate-shape current-shape)])
+    (when (not (contains? #t (hash-map rotated-shape (can-move-test tetris-board))))
+      (set! current-shape rotated-shape)))
+  (draw))
+
 (define (contains? el l)
   (cond
     [(empty? l) #f]
@@ -118,13 +143,15 @@
   (class canvas%
     (define/override (on-char key-event)
       (let ([code (send key-event get-key-code)])
-      (let ([new-direction (cond
-                             [(equal? code 'down) "down"]
-                             [(equal? code 'left) "left"]
-                             [(equal? code 'right) "right"])])
-        (move new-direction current-shape tetris-board))))
+        (if (equal? code 'up)
+            (rotate-shape!)
+            (let ([new-direction (cond
+                                   [(equal? code 'down) "down"]
+                                   [(equal? code 'left) "left"]
+                                   [(equal? code 'right) "right"])])
+              (move new-direction current-shape tetris-board)))))
     (super-new)))
-
+  
 (define can (new keyboard-canvas% [parent frame]
                  [paint-callback
                   (lambda (canvas dc)

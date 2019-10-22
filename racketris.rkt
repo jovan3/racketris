@@ -6,10 +6,17 @@
                    [height 640]))
 (send frame show #t)
 
-(define text "ok")
 (define board-width 11)
 (define board-height 20)
 (define game-over #f)
+
+(define shapes (list
+                (list '(5 0) '(5 1) '(5 2) '(5 3))
+                (list '(5 0) '(5 1) '(5 2) '(4 2))
+                (list '(5 0) '(5 1) '(6 0) '(6 1))
+                (list '(5 0) '(5 1) '(4 1) '(6 1))))
+
+(define colors (list "red" "blue" "yellow"))
 
 (define yellow-brush (make-object brush% "YELLOW" 'solid))
 (define red-brush (make-object brush% "RED" 'solid))
@@ -22,14 +29,6 @@
     [(equal? name "yellow") yellow-brush]))
 
 (define tetris-board (make-hash)) ; mutable hash
-
-(define shapes (list
-                (list '(5 0) '(5 1) '(5 2) '(5 3))
-                (list '(5 0) '(5 1) '(5 2) '(4 2))
-                (list '(5 0) '(5 1) '(6 0) '(6 1))
-                (list '(5 0) '(5 1) '(4 1) '(6 1))))
-
-(define colors (list "red" "blue" "yellow"))
 
 (define (random-element l)
   (list-ref l (random (length l))))
@@ -214,8 +213,7 @@
                     (begin
                       (set! current-shape (new-shape))
                       (clear-full-lines!))
-                    (game-over!)))
-              )))))
+                    (game-over!))))))))
   (draw))
 
 (define (game-over!)

@@ -14,19 +14,21 @@
                 (list '(5 0) '(5 1) '(5 2) '(5 3))
                 (list '(5 0) '(5 1) '(5 2) '(4 2))
                 (list '(5 0) '(5 1) '(6 0) '(6 1))
-                (list '(5 0) '(5 1) '(4 1) '(6 1))))
+                (list '(5 0) '(5 1) '(4 1) '(6 1))
+                (list '(5 0) '(5 1) '(6 1) '(6 2))
+                (list '(6 0) '(6 1) '(5 1) '(5 2))))
 
-(define colors (list "red" "blue" "yellow"))
+(define colors (list "red" "blue" "yellow" "green"))
 
-(define yellow-brush (make-object brush% "YELLOW" 'solid))
-(define red-brush (make-object brush% "RED" 'solid))
-(define blue-brush (make-object brush% "BLUE" 'solid))
+(define (make-brush color-name)
+  (make-object brush% color-name 'solid))
 
 (define (get-brush name)
   (cond
-    [(equal? name "red") red-brush]
-    [(equal? name "blue") blue-brush]
-    [(equal? name "yellow") yellow-brush]))
+    [(equal? name "red") (make-brush "RED")]
+    [(equal? name "blue") (make-brush "BLUE")]
+    [(equal? name "green") (make-brush "GREEN")]
+    [(equal? name "yellow") (make-brush "YELLOW")]))
 
 (define tetris-board (make-hash)) ; mutable hash
 

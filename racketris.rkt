@@ -50,7 +50,7 @@
   (let ([x-coords (map car (map car (hash->list shape)))]
         [y-coords (map cadr (map car (hash->list shape)))])
     (let ([mean-fn (lambda (l) (ceiling (/ (apply + l) 4)))])
-      (list (mean-fn x-coords) (mean-fn y-coords)))))
+      (list (- (mean-fn x-coords) 1) (mean-fn y-coords)))))
 
 (define (rotate-shape-piece-fn pivot-x pivot-y)
   (lambda (k v)
@@ -63,7 +63,8 @@
   (let ([pivot (shape-center shape)])
     (let ([pivot-x (car pivot)]
           [pivot-y (cadr pivot)])
-      (make-hash (hash-map shape (rotate-shape-piece-fn pivot-x pivot-y))))))
+      (move-shape
+       (make-hash (hash-map shape (rotate-shape-piece-fn pivot-x pivot-y))) 0 -1))))
 
 (define (rotate-shape!)
   (let ([rotated-shape (rotate-shape current-shape)])

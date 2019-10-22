@@ -26,13 +26,17 @@
                 (list '(5 0) '(5 1) '(5 2) '(4 2))
                 (list '(5 0) '(5 1) '(6 0) '(6 1))
                 (list '(5 0) '(5 1) '(4 1) '(6 1))))
- 
 
-(define (random-shape l)
+(define colors (list "red" "blue" "yellow"))
+
+(define (random-element l)
   (list-ref l (random (length l))))
 
-(define (new-shape) (apply hash (apply append (map (lambda (point)
-                                       (list point "red")) (random-shape shapes)))))
+(define (new-shape)
+  (let ([color (random-element colors)])
+    (apply hash
+           (apply append (map (lambda (point)
+                                (list point color)) (random-element shapes))))))
 
 (define current-shape (new-shape))
 

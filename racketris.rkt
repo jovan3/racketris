@@ -4,10 +4,12 @@
                    [label "Racketris"]
                    [width 340]
                    [height 640]))
+(send frame show #t)
 
 (define text "ok")
 (define board-width 11)
 (define board-height 20)
+(define game-over #f)
 
 (define yellow-brush (make-object brush% "YELLOW" 'solid))
 (define red-brush (make-object brush% "RED" 'solid))
@@ -88,7 +90,7 @@
   (draw))
 
 (define (clear-full-lines!)
-  (for ([row (range 1 21)])
+  (for ([row (range 1 (+ 1 board-height))])
     (let ([filled-pieces (hash-map tetris-board
                                    (lambda (k v)
                                      (let ([y (cadr k)])
@@ -168,24 +170,28 @@
 (define keyboard-canvas%
   (class canvas%
     (define/override (on-char key-event)
-      (let ([code (send key-event get-key-code)])
-        (if (equal? code 'up)
-            (rotate-shape!)
-            (let ([new-direction (cond
-                                   [(equal? code 'down) "down"]
-                                   [(equal? code 'left) "left"]
-                                   [(equal? code 'right) "right"])])
-              (move new-direction current-shape tetris-board)))))
+      (when (not game-over)
+        (let ([code (send key-event get-key-code)])
+          (if (equal? code 'up)
+              (rotate-shape!)
+              (let ([new-direction (cond
+                                     [(equal? code 'down) "down"]
+                                     [(equal? code 'left) "left"]
+                                     [(equal? code 'right) "right"])])
+                (move new-direction current-shape tetris-board))))))
     (super-new)))
+
+(define (draw-text ctx text x y)
+  (send ctx set-scale 3 3)
+  (send ctx set-text-foreground "blue")
+  (send ctx draw-text text x y))
   
+
 (define can (new keyboard-canvas% [parent frame]
                  [paint-callback
                   (lambda (canvas dc)
-                    (send dc set-scale 3 3)
-                    (send dc set-text-foreground "blue")
-                    (send dc draw-text "Don't Panic!" 0 0))]))
+                    (draw-text dc "Start!" 0 0))]))
 
-(send frame show #t)
 (define ctx (send can get-dc))
 
 (define (direction->delta direction)
@@ -203,10 +209,23 @@
           (when (should-freeze? shape board dx dy)
             (begin
               (place-on-board board shape)
-              (set! current-shape (new-shape))
-              (clear-full-lines!))))))
+              (let ([next-shape (new-shape)])
+                (if (can-move? next-shape board 0 0 (can-move-test board))
+                    (begin
+                      (set! current-shape (new-shape))
+                      (clear-full-lines!))
+                    (game-over!)))
+              )))))
   (draw))
-      
+
+(define (game-over!)
+  (set! game-over #t)
+  (draw-game-over))
+
+(define (draw-game-over)
+  (send ctx clear)
+  (draw-text ctx "Game over!" 10 120))
+  
 (define (draw)
   (send ctx clear)
   (draw-board tetris-board ctx)
@@ -216,6 +235,8 @@
   (draw)
   (move "down" current-shape tetris-board)
   (sleep/yield 1)
-  (loop (+ x 1) (+ y 1)))
+  (if game-over
+      (draw-game-over)
+      (loop (+ x 1) (+ y 1))))
 
 (loop 0 0)

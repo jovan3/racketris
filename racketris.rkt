@@ -1,12 +1,12 @@
 #lang racket/gui
 
 (define frame (new frame%
-                   [label "Example"]
-                   [width 300]
-                   [height 300]))
+                   [label "Racketris"]
+                   [width 340]
+                   [height 640]))
 
 (define text "ok")
-(define board-width 10)
+(define board-width 11)
 (define board-height 20)
 
 (define yellow-brush (make-object brush% "YELLOW" 'solid))
@@ -50,6 +50,17 @@
                           [y (cadr k)])
                       (cons (list (+ x dx) (+ y dy)) v))))))
 
+(define (board-fill-empty! cleared-row)
+  (set! tetris-board (make-hash (filter (lambda (e) (not (null? e)))
+                     (hash-map tetris-board
+                               (lambda (k v)
+                                 (let ([x (car k)]
+                                       [y (cadr k)])
+                                   (cond
+                                     [(< y cleared-row) (cons (list x (+ y 1)) v)]
+                                     [(= y cleared-row) null]
+                                     [else (cons k v)]))))))))
+
 (define (shape-center shape)
   (let ([x-coords (map car (map car (hash->list shape)))]
         [y-coords (map cadr (map car (hash->list shape)))])
@@ -76,6 +87,16 @@
       (set! current-shape rotated-shape)))
   (draw))
 
+(define (clear-full-lines!)
+  (for ([row (range 1 21)])
+    (let ([filled-pieces (hash-map tetris-board
+                                   (lambda (k v)
+                                     (let ([y (cadr k)])
+                                       (if (= y row) #t #f))))])
+      (let ([row-filled (length (filter (lambda (e) (eq? #t e)) filled-pieces))])
+        (when (= board-width row-filled)
+          (board-fill-empty! row))))))
+                                  
 (define (contains? el l)
   (cond
     [(empty? l) #f]
@@ -90,7 +111,7 @@
         [y (cadr piece)])
     (cond
       [(< x 0) #t]
-      [(> x board-width) #t]
+      [(>= x board-width) #t]
       [(> y board-height) #t]
       [else #f])))
 
@@ -182,7 +203,8 @@
           (when (should-freeze? shape board dx dy)
             (begin
               (place-on-board board shape)
-              (set! current-shape (new-shape)))))))
+              (set! current-shape (new-shape))
+              (clear-full-lines!))))))
   (draw))
       
 (define (draw)
